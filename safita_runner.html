@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+
+<title>SAFITA RUNNER</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+rel="stylesheet"
+/>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,
+body{
+
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:"Press Start 2P", monospace;
+
+}
+
+#gameContainer{
+
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:#000;
+
+}
+
+canvas{
+
+    width:100vw;
+    height:100vh;
+    display:none;
+
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+
+}
+
+#startScreen{
+
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:#000;
+    z-index:100;
+
+}
+
+#logoStart{
+
+    width:80%;
+    max-width:520px;
+
+    image-rendering:pixelated;
+
+}
+
+#startText{
+
+    margin-top:40px;
+
+    color:#fff;
+
+    border:4px solid #fff;
+
+    padding:18px 24px;
+
+    font-size:16px;
+
+    animation:blink .8s infinite;
+
+    box-shadow:6px 6px 0 #fff;
+
+}
+
+@keyframes blink{
+
+    0%{opacity:1;}
+    50%{opacity:.3;}
+    100%{opacity:1;}
+
+}
+
+.ui{
+
+    position:absolute;
+
+    left:50%;
+    top:56%;
+
+    transform:translate(-50%,-50%);
+
+    display:none;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    gap:14px;
+
+    z-index:50;
+
+}
+
+.pixelInput{
+
+    width:260px;
+
+    padding:14px;
+
+    background:#111;
+
+    border:3px solid #fff;
+
+    color:#fff;
+
+    font-family:"Press Start 2P", monospace;
+
+    text-align:center;
+
+    font-size:10px;
+
+    outline:none;
+
+}
+
+.pixelBtn{
+
+    width:260px;
+
+    padding:16px;
+
+    border:3px solid #fff;
+
+    background:#111;
+
+    color:#fff;
+
+    cursor:pointer;
+
+    font-family:"Press Start 2P", monospace;
+
+    font-size:10px;
+
+    box-shadow:5px 5px 0 #fff;
+
+}
+
+#leaderboard{
+
+    position:absolute;
+
+    top:90px;
+    right:10px;
+
+    width:220px;
+
+    background:rgba(0,0,0,.75);
+
+    border:3px solid #fff;
+
+    padding:12px;
+
+    display:none;
+
+    color:#fff;
+
+    z-index:40;
+
+    box-shadow:5px 5px 0 #fff;
+
+}
+
+#leaderboard h2{
+
+    text-align:center;
+
+    margin-bottom:12px;
+
+    font-size:10px;
+
+}
+
+#rankingList{
+
+    padding-left:16px;
+
+}
+
+#rankingList li{
+
+    margin-bottom:10px;
+
+    font-size:7px;
+
+    line-height:1.8;
+
+}
+
+@media(max-width:900px){
+
+    .pixelBtn,
+    .pixelInput{
+
+        width:240px;
+
+        font-size:8px;
+
+    }
+
+    #leaderboard{
+
+        width:180px;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="gameContainer">
+
+    <div id="startScreen">
+
+        <img
+        src="img/safita-logo-pixel.png"
+        id="logoStart"
+        >
+
+        <div id="startText">
+            APERTE START
+        </div>
+
+    </div>
+
+    <canvas id="game"></canvas>
+
+    <div id="gameOverUI" class="ui">
+
+        <input
+        type="text"
+        id="nameInput"
+        class="pixelInput"
+        placeholder="SEU NOME"
+        >
+
+        <button
+        id="saveBtn"
+        class="pixelBtn"
+        >
+            SALVAR RANK
+        </button>
+
+        <button
+        id="shareBtn"
+        class="pixelBtn"
+        >
+            COMPARTILHAR SCORE
+        </button>
+
+        <button
+        id="gangBtn"
+        class="pixelBtn"
+        >
+            ENTRAR PRA GANG
+        </button>
+
+        <button
+        id="restartBtn"
+        class="pixelBtn"
+        >
+            JOGAR NOVAMENTE
+        </button>
+
+    </div>
+
+    <div id="leaderboard">
+
+        <h2>TOP 5</h2>
+
+        <ol id="rankingList"></ol>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+/* ================================= */
+/* SUPABASE                          */
+/* ================================= */
+
+const SUPABASE_URL =
+"https://pgwqhrotounioooqqmjm.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_V84HwgC7jG3Jfxw_Hps8nA_z3KgbXLN";
+
+const supabaseClient =
+supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+/* ================================= */
+/* MOBILE                            */
+/* ================================= */
+
+const mobile =
+window.innerWidth < 900;
+
+/* ================================= */
+/* CANVAS                            */
+/* ================================= */
+
+const canvas =
+document.getElementById("game");
+
+const ctx =
+canvas.getContext("2d");
+
+ctx.imageSmoothingEnabled = false;
+
+function resizeCanvas(){
+
+    canvas.width =
+    window.innerWidth;
+
+    canvas.height =
+    window.innerHeight;
+
+}
+
+resizeCanvas();
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+/* ================================= */
+/* ELEMENTOS                         */
+/* ================================= */
+
+const startScreen =
+document.getElementById("startScreen");
+
+const leaderboardDiv =
+document.getElementById("leaderboard");
+
+const gameOverUI =
+document.getElementById("gameOverUI");
+
+const restartBtn =
+document.getElementById("restartBtn");
+
+const saveBtn =
+document.getElementById("saveBtn");
+
+const shareBtn =
+document.getElementById("shareBtn");
+
+const gangBtn =
+document.getElementById("gangBtn");
+
+const nameInput =
+document.getElementById("nameInput");
+
+/* ================================= */
+/* IMAGENS                           */
+/* ================================= */
+
+const playerImg = new Image();
+playerImg.src = "img/player2.png";
+
+const deadImg = new Image();
+deadImg.src = "img/queda.png";
+
+const backgroundImg = new Image();
+backgroundImg.src = "img/background.png";
+
+const obstacleImg = new Image();
+obstacleImg.src = "img/cone.png";
+
+/* ================================= */
+/* SONS                              */
+/* ================================= */
+
+const startMusic =
+new Audio("audio/start.mp3");
+
+startMusic.loop = true;
+startMusic.volume = 0.25;
+
+const gameMusic =
+new Audio("audio/game.mp3");
+
+gameMusic.loop = true;
+gameMusic.volume = 0.38;
+
+const jumpSound =
+new Audio("audio/jump.mp3");
+
+jumpSound.volume = 0.12;
+
+const hitSound =
+new Audio("audio/hit.mp3");
+
+const sirenSound =
+new Audio("audio/sirene.mp3");
+
+sirenSound.volume = 0.05;
+
+sirenSound.addEventListener("timeupdate", ()=>{
+
+    const buffer = 0.2;
+
+    if(
+        sirenSound.currentTime >
+        sirenSound.duration - buffer
+    ){
+
+        sirenSound.currentTime = 0;
+
+        sirenSound.play();
+
+    }
+
+});
+
+/* ================================= */
+/* VARIÁVEIS                         */
+/* ================================= */
+
+let gameStarted = false;
+
+let gameOver = false;
+
+let score = 0;
+
+let speed = 7;
+
+let backgroundX = 0;
+
+let gravity = 1.12;
+
+let jumpHeld = false;
+
+let obstacles = [];
+
+let animationFrameId;
+
+let alreadySaved = false;
+
+let showDeadSprite = false;
+
+/* ================================= */
+/* PLAYER                            */
+/* ================================= */
+
+const player = {
+
+    x:80,
+
+    y:canvas.height - 185,
+
+    width: mobile ? 118 : 102,
+
+    height: mobile ? 118 : 102,
+
+    velocityY:0,
+
+    jumping:false
+
+};
+
+/* ================================= */
+/* START GAME                        */
+/* ================================= */
+
+function startGame(){
+
+    if(gameStarted) return;
+
+    startMusic.pause();
+    startMusic.currentTime = 0;
+
+    gameMusic.play().catch(()=>{});
+
+    sirenSound.play().catch(()=>{});
+
+    gameStarted = true;
+
+    gameOver = false;
+
+    showDeadSprite = false;
+
+    score = 0;
+
+    speed = 7;
+
+    obstacles = [];
+
+    canvas.style.filter = "brightness(1)";
+
+    startScreen.style.display = "none";
+
+    canvas.style.display = "block";
+
+    leaderboardDiv.style.display = "none";
+
+    gameOverUI.style.display = "none";
+
+    obstacleSpawner();
+
+    loop();
+
+}
+
+/* ================================= */
+/* INPUT                             */
+/* ================================= */
+
+document.addEventListener("keydown",(e)=>{
+
+    if(
+        e.code === "Space" ||
+        e.code === "Enter"
+    ){
+
+        jumpHeld = true;
+
+        if(!gameStarted){
+
+            startGame();
+
+        }else{
+
+            jump();
+
+        }
+
+    }
+
+});
+
+document.addEventListener("keyup",()=>{
+
+    jumpHeld = false;
+
+});
+
+startScreen.addEventListener("click",()=>{
+
+    startGame();
+
+});
+
+/* ================================= */
+/* TOUCH                             */
+/* ================================= */
+
+canvas.addEventListener("touchstart",(e)=>{
+
+    e.preventDefault();
+
+    jumpHeld = true;
+
+    jump();
+
+});
+
+canvas.addEventListener("touchend",()=>{
+
+    jumpHeld = false;
+
+});
+
+/* ================================= */
+/* PULO                              */
+/* ================================= */
+
+function jump(){
+
+    if(!player.jumping && !gameOver){
+
+        jumpSound.currentTime = 0;
+
+        jumpSound.play();
+
+        player.velocityY =
+        mobile ? -17 : -18;
+
+        player.jumping = true;
+
+    }
+
+}
+
+/* ================================= */
+/* OBSTÁCULOS                        */
+/* ================================= */
+
+function createObstacle(){
+
+    if(obstacles.length > 0){
+
+        const lastObstacle =
+        obstacles[obstacles.length - 1];
+
+        const distance =
+        canvas.width - lastObstacle.x;
+
+        if(distance < (mobile ? 620 : 480)){
+
+            return;
+
+        }
+
+    }
+
+    obstacles.push({
+
+        x:canvas.width,
+
+        y:canvas.height - 130,
+
+        width: mobile ? 115 : 95,
+
+        height: mobile ? 95 : 82
+
+    });
+
+}
+
+/* ================================= */
+/* SPAWN                             */
+/* ================================= */
+
+function obstacleSpawner(){
+
+    if(gameOver) return;
+
+    createObstacle();
+
+    let difficulty =
+    Math.min(score * 2.5, 900);
+
+    let spawnTime =
+
+    (mobile ? 1400 : 1200)
+
+    - difficulty
+
+    + (Math.random() * 280);
+
+    spawnTime = Math.max(
+
+        mobile ? 480 : 380,
+
+        spawnTime
+
+    );
+
+    setTimeout(
+        obstacleSpawner,
+        spawnTime
+    );
+
+}
+
+/* ================================= */
+/* UPDATE                            */
+/* ================================= */
+
+function update(){
+
+    if(gameOver) return;
+
+    score += 0.12;
+
+    /* DIFICULDADE PROGRESSIVA */
+
+    speed = 7 + (score * 0.018);
+
+    if(speed > 19){
+
+        speed = 19;
+
+    }
+
+    gravity =
+    1.12 + (speed * 0.012);
+
+    player.velocityY += gravity;
+
+    player.y += player.velocityY;
+
+    if(
+
+        jumpHeld &&
+        player.velocityY < 0
+
+    ){
+
+        player.velocityY -= 0.04;
+
+    }
+
+    const floor =
+    canvas.height - 185;
+
+    if(player.y >= floor){
+
+        player.y = floor;
+
+        player.velocityY = 0;
+
+        player.jumping = false;
+
+    }
+
+    obstacles.forEach(obstacle=>{
+
+        obstacle.x -= speed;
+
+        if(
+
+            player.x + player.width - 48 > obstacle.x &&
+            player.x + 38 < obstacle.x + obstacle.width &&
+            player.y + player.height - 38 > obstacle.y
+
+        ){
+
+            endGame();
+
+        }
+
+    });
+
+    obstacles =
+    obstacles.filter(
+        obstacle => obstacle.x > -80
+    );
+
+}
+
+/* ================================= */
+/* DRAW PLAYER                       */
+/* ================================= */
+
+function drawPlayer(){
+
+    if(showDeadSprite){
+
+        ctx.drawImage(
+
+            deadImg,
+
+            Math.round(player.x - 12),
+            Math.round(player.y - 6),
+
+            mobile ? 215 : 190,
+            mobile ? 175 : 150
+
+        );
+
+    }else{
+
+        ctx.drawImage(
+
+            playerImg,
+
+            0,
+            0,
+
+            playerImg.width,
+            playerImg.height,
+
+            Math.round(player.x),
+            Math.round(player.y),
+
+            Math.round(player.width),
+            Math.round(player.height)
+
+        );
+
+    }
+
+}
+
+/* ================================= */
+/* DRAW                              */
+/* ================================= */
+
+function draw(){
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const bgRatio =
+    backgroundImg.width /
+    backgroundImg.height;
+
+    let bgWidth =
+    canvas.height * bgRatio;
+
+    let bgHeight =
+    canvas.height;
+
+    if(bgWidth < canvas.width){
+
+        bgWidth = canvas.width;
+
+        bgHeight =
+        canvas.width / bgRatio;
+
+    }
+
+    backgroundX -= Math.floor(speed * 0.45);
+
+    if(backgroundX <= -bgWidth){
+
+        backgroundX = 0;
+
+    }
+
+    const bgX =
+    Math.round(backgroundX);
+
+    ctx.drawImage(
+        backgroundImg,
+        bgX,
+        canvas.height - bgHeight,
+        bgWidth,
+        bgHeight
+    );
+
+    ctx.drawImage(
+        backgroundImg,
+        bgX + bgWidth,
+        canvas.height - bgHeight,
+        bgWidth,
+        bgHeight
+    );
+
+    obstacles.forEach(obstacle=>{
+
+        ctx.drawImage(
+            obstacleImg,
+            Math.round(obstacle.x),
+            Math.round(obstacle.y),
+            Math.round(obstacle.width),
+            Math.round(obstacle.height)
+        );
+
+    });
+
+    drawPlayer();
+
+    ctx.fillStyle = "#fff";
+
+    ctx.font =
+    mobile
+    ? "10px 'Press Start 2P'"
+    : "18px 'Press Start 2P'";
+
+    ctx.fillText(
+
+        "RESPEITO " +
+        Math.floor(score),
+
+        mobile ? 14 : 20,
+
+        mobile ? 80 : 40
+
+    );
+
+}
+
+/* ================================= */
+/* END GAME                          */
+/* ================================= */
+
+async function endGame(){
+
+    if(gameOver) return;
+
+    showDeadSprite = true;
+
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+
+    sirenSound.pause();
+    sirenSound.currentTime = 0;
+
+    hitSound.currentTime = 0;
+
+    hitSound.play();
+
+    startMusic.play().catch(()=>{});
+
+    gameOver = true;
+
+    gameStarted = false;
+
+    cancelAnimationFrame(animationFrameId);
+
+    canvas.style.filter =
+    "brightness(0.7)";
+
+    gameOverUI.style.display =
+    "flex";
+
+    leaderboardDiv.style.display =
+    "block";
+
+    updateLeaderboard();
+
+}
+
+/* ================================= */
+/* SAVE ONLINE                       */
+/* ================================= */
+
+saveBtn.addEventListener(
+"click",
+async ()=>{
+
+    if(alreadySaved) return;
+
+    alreadySaved = true;
+
+    let playerName =
+    nameInput.value.trim();
+
+    if(playerName === ""){
+
+        playerName = "JOGADOR";
+
+    }
+
+    playerName =
+    playerName.slice(0,10);
+
+    const { error } =
+
+    await supabaseClient
+
+    .from("Ranking")
+
+    .insert([{
+
+        name: playerName,
+
+        score: Math.floor(score)
+
+    }]);
+
+    if(error){
+
+        console.log(error);
+
+        alreadySaved = false;
+
+        return;
+
+    }
+
+    updateLeaderboard();
+
+});
+
+/* ================================= */
+/* SHARE                             */
+/* ================================= */
+
+shareBtn.addEventListener(
+"click",
+()=>{
+
+    const pontos =
+    Math.floor(score);
+
+    const mensagem =
+
+`🔥 Fiz ${pontos} pontos no SAFITA RUNNER!
+
+🏆 Consegue bater meu score?
+
+🎮 Joga agora:
+https://SEU-LINK-DO-JOGO.com`;
+
+    const whatsappURL =
+
+`https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+    window.open(
+        whatsappURL,
+        "_blank"
+    );
+
+});
+
+/* ================================= */
+/* GANG                              */
+/* ================================= */
+
+gangBtn.addEventListener("click",()=>{
+
+    window.open(
+        "https://wa.me/5511999999999",
+        "_blank"
+    );
+
+});
+
+/* ================================= */
+/* LEADERBOARD                       */
+/* ================================= */
+
+async function updateLeaderboard(){
+
+    const rankingList =
+    document.getElementById(
+        "rankingList"
+    );
+
+    rankingList.innerHTML = "";
+
+    const { data, error } =
+
+    await supabaseClient
+
+    .from("Ranking")
+
+    .select("*")
+
+    .order("score", {
+
+        ascending:false
+
+    })
+
+    .limit(5);
+
+    if(error){
+
+        console.log(error);
+
+        return;
+
+    }
+
+    data.forEach((player,index)=>{
+
+        const li =
+        document.createElement("li");
+
+        li.innerText =
+
+        "#" +
+        (index + 1) +
+
+        " " +
+
+        player.name +
+
+        " - " +
+
+        player.score;
+
+        rankingList.appendChild(li);
+
+    });
+
+}
+
+/* ================================= */
+/* RESTART                           */
+/* ================================= */
+
+restartBtn.addEventListener("click",()=>{
+
+    gameStarted = false;
+
+    gameOver = false;
+
+    showDeadSprite = false;
+
+    score = 0;
+
+    speed = 7;
+
+    gravity = 1.12;
+
+    obstacles = [];
+
+    alreadySaved = false;
+
+    nameInput.value = "";
+
+    player.y =
+    canvas.height - 185;
+
+    player.velocityY = 0;
+
+    player.jumping = false;
+
+    canvas.style.filter =
+    "brightness(1)";
+
+    gameMusic.pause();
+    gameMusic.currentTime = 0;
+
+    sirenSound.pause();
+    sirenSound.currentTime = 0;
+
+    startMusic.play().catch(()=>{});
+
+    gameOverUI.style.display =
+    "none";
+
+    leaderboardDiv.style.display =
+    "none";
+
+    canvas.style.display =
+    "none";
+
+    startScreen.style.display =
+    "flex";
+
+});
+
+/* ================================= */
+/* LOOP                              */
+/* ================================= */
+
+function loop(){
+
+    if(
+        !gameStarted ||
+        gameOver
+    ){
+
+        return;
+
+    }
+
+    update();
+
+    draw();
+
+    animationFrameId =
+    requestAnimationFrame(loop);
+
+}
+
+/* ================================= */
+/* INIT                              */
+/* ================================= */
+
+updateLeaderboard();
+
+</script>
+
+</body>
+</html>
