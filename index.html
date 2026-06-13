@@ -657,11 +657,13 @@ function createObstacle(){
 
         x:canvas.width,
 
-        y:canvas.height - 130,
+        y: mobile
+        ? canvas.height - 118
+        : canvas.height - 130,
 
-        width: mobile ? 115 : 95,
+        width: mobile ? 105 : 95,
 
-        height: mobile ? 95 : 82
+        height: mobile ? 82 : 82
 
     });
 
@@ -712,8 +714,6 @@ function update(){
     if(gameOver) return;
 
     score += 0.12;
-
-    /* DIFICULDADE PROGRESSIVA */
 
     speed = 7 + (score * 0.018);
 
@@ -958,58 +958,6 @@ async function endGame(){
 }
 
 /* ================================= */
-/* SAVE ONLINE                       */
-/* ================================= */
-
-saveBtn.addEventListener(
-"click",
-async ()=>{
-
-    if(alreadySaved) return;
-
-    alreadySaved = true;
-
-    let playerName =
-    nameInput.value.trim();
-
-    if(playerName === ""){
-
-        playerName = "JOGADOR";
-
-    }
-
-    playerName =
-    playerName.slice(0,10);
-
-    const { error } =
-
-    await supabaseClient
-
-    .from("Ranking")
-
-    .insert([{
-
-        name: playerName,
-
-        score: Math.floor(score)
-
-    }]);
-
-    if(error){
-
-        console.log(error);
-
-        alreadySaved = false;
-
-        return;
-
-    }
-
-    updateLeaderboard();
-
-});
-
-/* ================================= */
 /* SHARE                             */
 /* ================================= */
 
@@ -1027,7 +975,7 @@ shareBtn.addEventListener(
 🏆 Consegue bater meu score?
 
 🎮 Joga agora:
-https://SEU-LINK-DO-JOGO.com`;
+https://geovanelucena.github.io/safita-runner/`;
 
     const whatsappURL =
 
@@ -1037,136 +985,6 @@ https://SEU-LINK-DO-JOGO.com`;
         whatsappURL,
         "_blank"
     );
-
-});
-
-/* ================================= */
-/* GANG                              */
-/* ================================= */
-
-gangBtn.addEventListener("click",()=>{
-
-    window.open(
-        "https://wa.me/5511999999999",
-        "_blank"
-    );
-
-});
-
-/* ================================= */
-/* LEADERBOARD                       */
-/* ================================= */
-
-async function updateLeaderboard(){
-
-    const rankingList =
-    document.getElementById(
-        "rankingList"
-    );
-
-    rankingList.innerHTML = "";
-
-    const { data, error } =
-
-    await supabaseClient
-
-    .from("Ranking")
-
-    .select("*")
-
-    .order("score", {
-
-        ascending:false
-
-    })
-
-    .limit(5);
-
-    if(error){
-
-        console.log(error);
-
-        return;
-
-    }
-
-    data.forEach((player,index)=>{
-
-        const li =
-        document.createElement("li");
-
-        li.innerText =
-
-        "#" +
-        (index + 1) +
-
-        " " +
-
-        player.name +
-
-        " - " +
-
-        player.score;
-
-        rankingList.appendChild(li);
-
-    });
-
-}
-
-/* ================================= */
-/* RESTART                           */
-/* ================================= */
-
-restartBtn.addEventListener("click",()=>{
-
-    gameStarted = false;
-
-    gameOver = false;
-
-    showDeadSprite = false;
-
-    score = 0;
-
-    speed = 7;
-
-    gravity = 1.12;
-
-    obstacles = [];
-
-    alreadySaved = false;
-
-    nameInput.value = "";
-
-    player.y =
-    canvas.height - 185;
-
-    player.velocityY = 0;
-
-    player.jumping = false;
-
-    canvas.style.filter =
-    "brightness(1)";
-
-    gameMusic.pause();
-    gameMusic.currentTime = 0;
-
-    sirenSound.pause();
-    sirenSound.currentTime = 0;
-
-    startMusic.play().catch(()=>{});
-
-    gameOverUI.style.display =
-    "none";
-
-    leaderboardDiv.style.display =
-    "none";
-
-    canvas.style.display =
-    "none";
-
-    startScreen.style.display =
-    "flex";
 
 });
 
